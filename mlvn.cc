@@ -50,6 +50,9 @@ unique_ptr<Graph> TransformSubstrateTopology(
       int ip_link_cost = 0;
       for (int k = 0; k < mapped_otn_path.size(); ++k) {
         int u = mapped_otn_path[k].first, v = mapped_otn_path[k].second;
+        if ((u == 0 || u == 49) && (v == 0 || v == 49)) {
+            printf("BINGO\n");
+        }
         ip_link_cost += otn_topology->GetEdgeCost(u, v);
         long bw = pn_topology->GetEdgeResidualBandwidth(u, v);
         pn_topology->SetEdgeResidualBandwidth(u, v, bw - endpoint.bandwidth);
@@ -141,21 +144,21 @@ int main(int argc, char* argv[]) {
       xlocation_constraint->at(i).push_back(ip_otn_mapping->node_map[loc]);
     }
   }
-  printf("%s\n", phys_topology->GetDebugString().c_str());
+  // printf("%s\n", phys_topology->GetDebugString().c_str());
   unique_ptr<MultiLayerVNESolver> mlvne_solver(
       new MultiLayerVNESolver(phys_topology.get(), vn_topology.get(), 
         xlocation_constraint.get(), 5));
-  mlvne_solver->BuildModel();
-  mlvne_solver->Solve();
-
   VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), phys_topology.get(), vn_topology.get());
-  unique_ptr<OverlayMapping> vne(vne_sbuilder.BuildVNEmbedding().release());
-  unique_ptr<OverlayMapping> new_ip_links(
-      vne_sbuilder.BuildNewIPLinks(vne.get(), ip_otn_mapping.get()));
+  mlvne_solver->BuildModel();
+  if (mlvne_solver->Solve()) {
+    unique_ptr<OverlayMapping> vne(vne_sbuilder.BuildVNEmbedding().release());
+    unique_ptr<OverlayMapping> new_ip_links(
+        vne_sbuilder.BuildNewIPLinks(vne.get(), ip_otn_mapping.get()));
+    vne_sbuilder.PrintNodeMapping((vn_topology_file + ".nmap").c_str());
+    vne_sbuilder.PrintEdgeMapping((vn_topology_file + ".emap").c_str());
+    vne_sbuilder.PrintCost((vn_topology_file + ".cost").c_str());
+    vne_sbuilder.PrintNewIPLinks(new_ip_links.get(), (vn_topology_file + ".new_ip").c_str());
+  }
   vne_sbuilder.PrintSolutionStatus((vn_topology_file + ".status").c_str());
-  vne_sbuilder.PrintNodeMapping((vn_topology_file + ".nmap").c_str());
-  vne_sbuilder.PrintEdgeMapping((vn_topology_file + ".emap").c_str());
-  vne_sbuilder.PrintCost((vn_topology_file + ".cost").c_str());
-  vne_sbuilder.PrintNewIPLinks(new_ip_links.get(), (vn_topology_file + ".new_ip").c_str());
   return 0;
 }

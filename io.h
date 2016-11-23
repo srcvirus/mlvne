@@ -141,8 +141,9 @@ unique_ptr<OverlayMapping> InitializeOverlayMappingFromFile(
       mapping->edge_map[overlay_link] = path_t();
     }
     mapping->edge_map[overlay_link].push_back(underlay_link);
+    DEBUG("Current embedding path length of (%d, %d) is %u\n", m, n, mapping->edge_map[overlay_link].size());
   }
-  DEBUG("Embedding read successfully\n");
+  DEBUG("Embedding of %d links read successfully\n", mapping->edge_map.size());
   return boost::move(mapping);
 }
 

@@ -26,7 +26,9 @@ typedef struct edge_t {
   int first, second, order;
   edge_t(int f, int s, int o = 0) : first(f), second(s), order(o) {}
   bool operator <(const edge_t &e) const {
-    return first < e.first && second < e.second && order < e.order;
+    if (first != e.first) return first < e.first;
+    if (second != e.second) return second < e.second;
+    return order < e.order;
   }
   bool operator ==(const edge_t &e) const {
     return first == e.first && second == e.second && order == e.order;

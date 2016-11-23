@@ -16,8 +16,9 @@ def execute_one_experiment(executable, otn_topology_file, ip_topology_file,
             "--vn_topology_file=" + vn_topology_file,
             "--vn_location_file=" + location_constraint_file],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
-    with open(vn_topology_file + ".status") as f:
-        print vn_topology_file + ": " + f.readline()
+    if os.path.isfile(vn_topology_file + ".status"):
+        with open(vn_topology_file + ".status") as f:
+            print vn_topology_file + ": " + f.readline()
 
 def main():
     parser = argparse.ArgumentParser(

@@ -68,7 +68,8 @@ void MultiLayerVNESolver::BuildModel() {
     for (int i = 0; i < u_neighbors.size(); ++i) {
       const edge_endpoint &end_point = u_neighbors[i];
       int v = end_point.node_id;
-      int beta_uv = end_point.residual_bandwidth;
+      long beta_uv = end_point.residual_bandwidth;
+      assert(beta_uv > 0);
       int order = end_point.order;
       int cost_uv = end_point.cost;
       IloIntExpr sum(env_);
@@ -197,7 +198,7 @@ bool MultiLayerVNESolver::Solve() {
   cplex_.setParam(IloCplex::Threads, n_threads);
   cplex_.exportModel("drone.lp");
   bool is_success = cplex_.solve();
-  return is_success;
+  // return is_success;
   if (cplex_.getStatus() == IloAlgorithm::Infeasible) {
     IloConstraintArray infeasible(env_);
     IloNumArray preferences(env_);
@@ -208,7 +209,7 @@ bool MultiLayerVNESolver::Solve() {
       env_.getImpl()->useDetailedDisplay(IloTrue);
       std::cout << "Conflict : " << std::endl;
       for (IloInt i = 0; i<infeasible.getSize(); i++) {
-        std::cout << conflict[i] << std::endl;
+        // std::cout << conflict[i] << std::endl;
         if ( conflict[i] == IloCplex::ConflictMember)
           std::cout << "Proved  : " << infeasible[i] << std::endl;
           if ( conflict[i] == IloCplex::ConflictPossibleMember)
