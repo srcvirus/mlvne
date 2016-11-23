@@ -66,6 +66,7 @@ unique_ptr<Graph> TransformSubstrateTopology(
 
 int main(int argc, char* argv[]) {
   if (argc < 8) {
+    printf("Not sufficient arguments. Expected 8, provided %d\n", argc);
     printf("%s\n", kUsage.c_str());
     return 1;
   }
