@@ -44,7 +44,7 @@ def main():
     i = 0
     while True:
         vn_topology_file = os.path.join(args.testcase_root, "vn" + str(i) + ".topo")
-        location_constraint_file = os.path.join(args.testcase_root, "vn" + str(i) + "loc")
+        location_constraint_file = os.path.join(args.testcase_root, "vnloc" + str(i))
         if not os.path.isfile(vn_topology_file):
             break
         execute_one_experiment(executable, otn_topology_file, ip_topology_file,
