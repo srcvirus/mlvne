@@ -14,11 +14,10 @@ unique_ptr<OverlayMapping> VNESolutionBuilder::BuildNewIPLinks(
     std::vector<path_t> paths;
     path_t current_path;
     for (int i = 0; i < mapped_path.size(); ++i) {
-      if (pn_topology_->
-          GetEdgeCost(
+      if (!pn_topology_->IsPseudoEdge(
             mapped_path[i].first, 
             mapped_path[i].second, 
-            mapped_path[i].order) == kInfinity) {
+            mapped_path[i].order)) {
         current_path.push_back(mapped_path[i]);
       } else {
         if (!current_path.empty()) {

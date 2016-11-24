@@ -80,7 +80,7 @@ unique_ptr<Graph> InitializeTopologyFromFile(const char* filename) {
 
     DEBUG("Line[%d]: u = %d, v = %d, cost = %d, bw = %ld, delay = %d\n", i, u,
           v, cost, bw, delay);
-    graph->AddEdge(u, v, bw, delay, cost);
+    graph->AddEdge(u, v, bw, delay, cost, false);
   }
   return boost::move(graph);
 }

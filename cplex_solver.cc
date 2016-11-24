@@ -3,7 +3,8 @@
 
 MultiLayerVNESolver::MultiLayerVNESolver(
     Graph *pn_topology, Graph *vn_topology,
-    std::vector<std::vector<int>> *location_constraint, int k) {
+    std::vector<std::vector<int>> *location_constraint, 
+    int cost_new_ip_link, int k) {
   model_ = IloModel(env_);
   cplex_ = IloCplex(model_);
   constraints_ = IloConstraintArray(env_);
@@ -14,6 +15,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
   vn_topology_ = vn_topology;
   location_constraint_ = location_constraint;
   k_ = k;
+  cost_new_ip_link_ = cost_new_ip_link;
   x_mn_uvi_ = IloIntVar5dArray(env_, vn_topology_->node_count());
   y_m_u_ = IloIntVar2dArray(env_, vn_topology_->node_count());
   l_m_u_ = IloInt2dArray(env_, vn_topology_->node_count());
@@ -46,7 +48,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
       l_m_u_[m][u] = 0;
     const std::vector<int>& loc_constraints = location_constraint_->at(m);
     for (int i = 0; i < loc_constraints.size(); ++i) {
-      DEBUG("loc = %d, pnodes = %d\n", loc_constraints[i], pn_topology->node_count());
+      DEBUG("loc = %d, pnodes = %d\n", loc_constraints[i], pn_topology_->node_count());
       assert(loc_constraints[i] < pn_topology_->node_count());
       l_m_u_[m][loc_constraints[i]] = 1;
     }
@@ -80,7 +82,7 @@ void MultiLayerVNESolver::BuildModel() {
           const edge_endpoint &vend_point = m_neighbors[j];
           int n = vend_point.node_id;
           int beta_mn = vend_point.bandwidth;
-          if (cost_uv == kInfinity) {
+          if (!pn_topology_->IsPseudoEdge(u, v, order)) {
             beta_mn *= k_;
           }
           DEBUG("u = %d, v = %d, order = %d, m = %d, n = %d\n", u, v, order, m, n);
@@ -176,11 +178,12 @@ void MultiLayerVNESolver::BuildModel() {
           int v = end_point.node_id;
           int order = end_point.order;
 	        int cost_uv = end_point.cost;
-          int multiplier = 1;
-          if (cost_uv == kInfinity) 
-            multiplier = k_;
+          if (!pn_topology_->IsPseudoEdge(u, v, order)) {
+            objective_ += (x_mn_uvi_[m][n][u][v][order] * cost_new_ip_link_);
+          } else {
+            objective_ += (x_mn_uvi_[m][n][u][v][order] * cost_uv * beta_mn);
+          }
           DEBUG("u = %d, v = %d, order = %d, m = %d, n = %d\n", u, v, order, m, n);
-          objective_ += (x_mn_uvi_[m][n][u][v][order] * cost_uv * multiplier * beta_mn);
         }
       }
     }

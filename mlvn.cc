@@ -27,7 +27,7 @@ unique_ptr<Graph> TransformSubstrateTopology(
       if (i > endpoint.node_id)
         continue;
       pn_topology->AddEdge(i, endpoint.node_id, endpoint.bandwidth,
-                           endpoint.delay, kInfinity);
+                           endpoint.delay, endpoint.cost, false);
     }
   }
   for (int i = 0; i < ip_topology->node_count(); ++i) {
@@ -61,7 +61,7 @@ unique_ptr<Graph> TransformSubstrateTopology(
       // TODO: This will add both otn_u, otn_v and otn_v, otn_u to the graph.
       // Need to handle this.
       pn_topology->AddEdge(otn_u, otn_v, endpoint.bandwidth, endpoint.delay,
-                           ip_link_cost);
+                           ip_link_cost, true);
     }
   }
   return boost::move(pn_topology);
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
   // printf("%s\n", phys_topology->GetDebugString().c_str());
   unique_ptr<MultiLayerVNESolver> mlvne_solver(
       new MultiLayerVNESolver(phys_topology.get(), vn_topology.get(), 
-        xlocation_constraint.get(), 5));
+        xlocation_constraint.get(), kInfinity, 5));
   VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), phys_topology.get(), vn_topology.get());
   mlvne_solver->BuildModel();
   if (mlvne_solver->Solve()) {
