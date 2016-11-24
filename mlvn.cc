@@ -147,15 +147,19 @@ int main(int argc, char* argv[]) {
   // printf("%s\n", phys_topology->GetDebugString().c_str());
   unique_ptr<MultiLayerVNESolver> mlvne_solver(
       new MultiLayerVNESolver(phys_topology.get(), vn_topology.get(), 
-        xlocation_constraint.get(), kInfinity, 5));
+        xlocation_constraint.get(), 2000, 5));
   VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), phys_topology.get(), vn_topology.get());
   mlvne_solver->BuildModel();
   if (mlvne_solver->Solve()) {
     unique_ptr<OverlayMapping> vne(vne_sbuilder.BuildVNEmbedding().release());
     unique_ptr<OverlayMapping> new_ip_links(
-        vne_sbuilder.BuildNewIPLinks(vne.get(), ip_otn_mapping.get()));
+        vne_sbuilder.TranslateEmbeddingToIP(vne.get(), ip_topology.get(), ip_otn_mapping.get()));
     vne_sbuilder.PrintNodeMapping((vn_topology_file + ".nmap").c_str());
     vne_sbuilder.PrintEdgeMapping((vn_topology_file + ".emap").c_str());
+    vne_sbuilder.PrintMapping(
+        vne.get(), 
+        (vn_topology_file + ".nmap").c_str(), 
+        (vn_topology_file + ".emap").c_str());
     vne_sbuilder.PrintCost((vn_topology_file + ".cost").c_str());
     vne_sbuilder.PrintNewIPLinks(new_ip_links.get(), (vn_topology_file + ".new_ip").c_str());
   }

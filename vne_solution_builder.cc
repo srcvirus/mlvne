@@ -4,13 +4,52 @@
 #include <algorithm>
 #include <math.h>
 
-unique_ptr<OverlayMapping> VNESolutionBuilder::BuildNewIPLinks(
-    const OverlayMapping* vne, const OverlayMapping *ip_otn_mapping) {
-  unique_ptr<OverlayMapping> new_ip_links(new OverlayMapping);
+void VNESolutionBuilder::PrintMapping(const OverlayMapping* vne, 
+    const char *nmap_filename, const char *emap_filename) {
+  FILE *nmap_outfile = NULL, *emap_outfile = NULL;
+  if (nmap_filename) nmap_outfile = fopen(nmap_filename, "w");
+  if (emap_filename) emap_outfile = fopen(emap_filename, "w");
+  for (int i = 0; i < vne->node_map.size(); ++i) {
+    printf("Virtual node %d --> IP node %d\n", i, vne->node_map[i]);
+    if (nmap_outfile) 
+      fprintf(nmap_outfile, "Virtual node %d --> IP node %d\n", i, vne->node_map[i]);
+  }
   edge_map_t::const_iterator vne_it;
   for (vne_it = vne->edge_map.begin(); vne_it != vne->edge_map.end(); ++vne_it) {
     const edge_t& vlink = vne_it->first;
     const path_t& mapped_path = vne_it->second;
+    for (int i = 0; i < mapped_path.size(); ++i) {
+      printf("Virtual link (%d, %d) --> IP link (%d, %d, %d)\n", 
+          vlink.first, vlink.second, mapped_path[i].first, 
+          mapped_path[i].second, mapped_path[i].order);
+      if (emap_outfile) {
+        fprintf(emap_outfile, "Virtual link (%d, %d) --> IP link (%d, %d, %d)\n", 
+          vlink.first, vlink.second, mapped_path[i].first, 
+          mapped_path[i].second, mapped_path[i].order);
+      }
+    }
+  }
+  if (nmap_outfile) fclose(nmap_outfile);
+  if (emap_outfile) fclose(emap_outfile);
+}
+
+unique_ptr<OverlayMapping> VNESolutionBuilder::TranslateEmbeddingToIP(
+    OverlayMapping* vne, Graph* ip_topology, OverlayMapping *ip_otn_mapping) {
+  unique_ptr<OverlayMapping> new_ip_links(new OverlayMapping);
+  edge_map_t::iterator vne_it;
+  for (int i = 0; i < vne->node_map.size(); ++i) {
+    int ip_node = static_cast<int>(
+                    std::find(
+                      ip_otn_mapping->node_map.begin(), 
+                      ip_otn_mapping->node_map.end(), 
+                      vne->node_map[i]) -
+                    ip_otn_mapping->node_map.begin());
+    vne->node_map[i] = ip_node;
+  }
+  for (vne_it = vne->edge_map.begin(); vne_it != vne->edge_map.end(); ++vne_it) {
+    const edge_t& vlink = vne_it->first;
+    const path_t& mapped_path = vne_it->second;
+    path_t translated_path;
     std::vector<path_t> paths;
     path_t current_path;
     for (int i = 0; i < mapped_path.size(); ++i) {
@@ -23,14 +62,29 @@ unique_ptr<OverlayMapping> VNESolutionBuilder::BuildNewIPLinks(
         if (!current_path.empty()) {
           paths.push_back(current_path);
           current_path.clear();
+          translated_path.push_back(edge_t(-1, -1, -1));
         }
+        edge_t ip_link(mapped_path[i].first, mapped_path[i].second);
+        ip_link.first = static_cast<int>(std::find(ip_otn_mapping->node_map.begin(),
+                                  ip_otn_mapping->node_map.end(), ip_link.first) - 
+                        ip_otn_mapping->node_map.begin());
+        ip_link.second = static_cast<int>(std::find(ip_otn_mapping->node_map.begin(),
+                                  ip_otn_mapping->node_map.end(), ip_link.second) -
+                         ip_otn_mapping->node_map.begin());
+        translated_path.push_back(ip_link);
       }
     }
-    if (!current_path.empty()) 
+    if (!current_path.empty()) {
       paths.push_back(current_path);
+      translated_path.push_back(edge_t(-1, -1, -1));
+    }
+    path_t new_ip_links_on_path;
     for (int i = 0; i < paths.size(); ++i) {
       std::set<int> v;
+      int new_ip_link_cost = 0;
       for (int j = 0; j < paths[i].size(); ++j) {
+        new_ip_link_cost += 
+          pn_topology_->GetEdgeCost(paths[i][j].first, paths[i][j].second, paths[i][j].order);
         if (pn_topology_->special_nodes()->find(paths[i][j].first) !=
             pn_topology_->special_nodes()->end()) {
           v.insert(paths[i][j].first);
@@ -54,12 +108,25 @@ unique_ptr<OverlayMapping> VNESolutionBuilder::BuildNewIPLinks(
       if (ip_link.first < ip_link.second) 
         std::swap(ip_link.first, ip_link.second);
       ip_link.order = 0;
-      while (new_ip_links->edge_map.find(ip_link) != 
-          new_ip_links->edge_map.end()) {
+      while (ip_topology->
+          GetEdgeCost(ip_link.first, ip_link.second, ip_link.order) != -1)
         ++ip_link.order;
-      }
+      long bandwidth = this->vn_topology_->GetEdgeBandwidth(
+          vne_it->first.first, vne_it->first.second, vne_it->first.order) * 
+        this->vne_solver_ptr_->k();
+      new_ip_links_on_path.push_back(ip_link);
       new_ip_links->edge_map[ip_link] = paths[i];
+      ip_topology->AddEdge(
+          ip_link.first, ip_link.second, bandwidth, 1, new_ip_link_cost, false);
+      ip_otn_mapping->edge_map[ip_link] = paths[i];
     }
+    for (int p = 0, q = 0; p < new_ip_links_on_path.size(); ++p) {
+      while (q < translated_path.size() &&
+            (translated_path[q].first != -1 && translated_path[q].second != -1))
+        ++q;
+      translated_path[q] = new_ip_links_on_path[p];
+    }
+    vne_it->second = translated_path;
   }
   return boost::move(new_ip_links);
 }

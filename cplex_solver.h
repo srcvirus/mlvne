@@ -34,6 +34,7 @@ class MultiLayerVNESolver {
   IloIntVar5dArray &x_mn_uvi() { return x_mn_uvi_; }
   IloIntVar2dArray &y_m_u() { return y_m_u_; }
   IloExpr &objective() { return objective_; }
+  int k() { return k_; }
   void BuildModel();
   bool Solve();
   const static int kInfinity = 100000;

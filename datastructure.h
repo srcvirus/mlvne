@@ -170,6 +170,7 @@ class Graph {
       if (end_point_it->node_id == v && end_point_it->order == order)
         return end_point_it->cost;
     }
+    return -1;
   }
 
   long GetEdgeBandwidth(int u, int v, int order = 0) const {
@@ -180,6 +181,7 @@ class Graph {
       if (end_point_it->node_id == v && end_point_it->order == order)
         return end_point_it->bandwidth;
     }
+    return -1;
   }
 
   void SetEdgeBandwidth(int u, int v, long bw, int order = 0) {
@@ -202,6 +204,7 @@ class Graph {
       if (end_point_it->node_id == v && end_point_it->order == order)
         return end_point_it->residual_bandwidth;
     }
+    return -1;
   }
 
   void SetEdgeResidualBandwidth(int u, int v, long rbw, int order = 0) {
