@@ -180,9 +180,8 @@ void MultiLayerVNESolver::BuildModel() {
 	        int cost_uv = end_point.cost;
           if (!pn_topology_->IsPseudoEdge(u, v, order)) {
             objective_ += (x_mn_uvi_[m][n][u][v][order] * cost_new_ip_link_);
-          } else {
-            objective_ += (x_mn_uvi_[m][n][u][v][order] * cost_uv * beta_mn);
-          }
+          } 
+          objective_ += (x_mn_uvi_[m][n][u][v][order] * cost_uv * beta_mn);
           DEBUG("u = %d, v = %d, order = %d, m = %d, n = %d\n", u, v, order, m, n);
         }
       }
