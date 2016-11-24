@@ -4,6 +4,8 @@
 #include "util.h"
 #include "vne_solution_builder.h"
 
+#include <boost/progress.hpp>
+#include <time.h>
 
 const std::string kUsage =
     "./mlvn "
@@ -149,8 +151,12 @@ int main(int argc, char* argv[]) {
       new MultiLayerVNESolver(phys_topology.get(), vn_topology.get(), 
         xlocation_constraint.get(), 2000, 5));
   VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), phys_topology.get(), vn_topology.get());
+  std::ofstream sol_time_file;
+  sol_time_file.open((vn_topology_file + ".time").c_str());
+  boost::progress_timer pt(sol_time_file);
   mlvne_solver->BuildModel();
-  if (mlvne_solver->Solve()) {
+  bool is_successful = mlvne_solver->Solve();
+  if (is_successful) {
     unique_ptr<OverlayMapping> vne(vne_sbuilder.BuildVNEmbedding().release());
     unique_ptr<OverlayMapping> new_ip_links(
         vne_sbuilder.TranslateEmbeddingToIP(vne.get(), ip_topology.get(), ip_otn_mapping.get()));
