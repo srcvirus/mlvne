@@ -16,6 +16,11 @@ def execute_one_experiment(executable, otn_topology_file, ip_topology_file,
             "--vn_topology_file=" + vn_topology_file,
             "--vn_location_file=" + location_constraint_file],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+    out, err = process.communicate()
+    with open(vn_topology_file + ".stdout", "w") as f:
+        f.write(out)
+    with open(vn_topology_file + ".stderr", "w") as f:
+        f.write(err)
     if os.path.isfile(vn_topology_file + ".status"):
         with open(vn_topology_file + ".status") as f:
             print vn_topology_file + ": " + f.readline()
