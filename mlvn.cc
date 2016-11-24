@@ -4,8 +4,8 @@
 #include "util.h"
 #include "vne_solution_builder.h"
 
-#include <boost/progress.hpp>
 #include <time.h>
+#include <boost/progress.hpp>
 
 const std::string kUsage =
     "./mlvn "
@@ -26,8 +26,7 @@ unique_ptr<Graph> TransformSubstrateTopology(
         otn_topology->adj_list()->at(i);
     for (int j = 0; j < adj_list.size(); ++j) {
       const edge_endpoint& endpoint = adj_list[j];
-      if (i > endpoint.node_id)
-        continue;
+      if (i > endpoint.node_id) continue;
       pn_topology->AddEdge(i, endpoint.node_id, endpoint.bandwidth,
                            endpoint.delay, endpoint.cost, false);
     }
@@ -36,8 +35,7 @@ unique_ptr<Graph> TransformSubstrateTopology(
     const std::vector<edge_endpoint>& adj_list = ip_topology->adj_list()->at(i);
     for (int j = 0; j < adj_list.size(); ++j) {
       const edge_endpoint& endpoint = adj_list[j];
-      if (i > endpoint.node_id) 
-        continue;
+      if (i > endpoint.node_id) continue;
       int otn_u = ip_otn_mapping->node_map[i];
       int otn_v = ip_otn_mapping->node_map[endpoint.node_id];
       pn_topology->AddSpecialNode(otn_u);
@@ -48,12 +46,13 @@ unique_ptr<Graph> TransformSubstrateTopology(
       // OTN path.
       const path_t& mapped_otn_path =
           ip_otn_mapping->edge_map.find(edge_t(i, endpoint.node_id))->second;
-      DEBUG("mapped path length for %d, %d = %d\n", i, endpoint.node_id, mapped_otn_path.size());
+      DEBUG("mapped path length for %d, %d = %d\n", i, endpoint.node_id,
+            mapped_otn_path.size());
       int ip_link_cost = 0;
       for (int k = 0; k < mapped_otn_path.size(); ++k) {
         int u = mapped_otn_path[k].first, v = mapped_otn_path[k].second;
         if ((u == 0 || u == 49) && (v == 0 || v == 49)) {
-            printf("BINGO\n");
+          printf("BINGO\n");
         }
         ip_link_cost += otn_topology->GetEdgeCost(u, v);
         long bw = pn_topology->GetEdgeResidualBandwidth(u, v);
@@ -77,7 +76,7 @@ int main(int argc, char* argv[]) {
   }
   // Parse the command line arguments.
   using std::string;
-  unique_ptr<std::map<string, string>> arg_map(ParseArgs(argc, argv).release());
+  unique_ptr<std::map<string, string> > arg_map(ParseArgs(argc, argv).release());
   string otn_topology_file = "", ip_topology_file = "", ip_port_info_file = "",
          ip_node_mapping_file = "", ip_link_mapping_file = "",
          vn_topology_file = "", vn_location_file = "";
@@ -99,7 +98,8 @@ int main(int argc, char* argv[]) {
     } else if (arg_map_it->first == "--vn_location_file") {
       vn_location_file = arg_map_it->second;
     } else {
-      printf("Unrecognized command line option: %s\n", arg_map_it->first.c_str());
+      printf("Unrecognized command line option: %s\n",
+             arg_map_it->first.c_str());
       printf("%s\n", kUsage.c_str());
     }
   }
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
       InitializeTopologyFromFile(otn_topology_file.c_str()).release());
   unique_ptr<Graph> ip_topology(
       InitializeTopologyFromFile(ip_topology_file.c_str()).release());
-  unique_ptr<std::vector<std::vector<int>>> ip_port_info(
+  unique_ptr<std::vector<std::vector<int> > > ip_port_info(
       InitializePortInfoFromFile(ip_port_info_file.c_str()).release());
   unique_ptr<OverlayMapping> ip_otn_mapping(
       InitializeOverlayMappingFromFile(ip_node_mapping_file.c_str(),
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
           .release());
   unique_ptr<Graph> vn_topology(
       InitializeTopologyFromFile(vn_topology_file.c_str()).release());
-  unique_ptr<std::vector<std::vector<int>>> location_constraint(
+  unique_ptr<std::vector<std::vector<int> > > location_constraint(
       InitializeVNLocationsFromFile(vn_location_file.c_str(),
                                     vn_topology->node_count())
           .release());
@@ -142,15 +142,17 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < location_constraint->size(); ++i) {
     for (int j = 0; j < location_constraint->at(i).size(); ++j) {
       int loc = location_constraint->at(i)[j];
-      DEBUG("prev_loc = %d, new_loc = %d\n", loc, ip_otn_mapping->node_map[loc]);
+      DEBUG("prev_loc = %d, new_loc = %d\n", loc,
+            ip_otn_mapping->node_map[loc]);
       xlocation_constraint->at(i).push_back(ip_otn_mapping->node_map[loc]);
     }
   }
   // printf("%s\n", phys_topology->GetDebugString().c_str());
   unique_ptr<MultiLayerVNESolver> mlvne_solver(
-      new MultiLayerVNESolver(phys_topology.get(), vn_topology.get(), 
-        xlocation_constraint.get(), 2000, 5));
-  VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), phys_topology.get(), vn_topology.get());
+      new MultiLayerVNESolver(phys_topology.get(), vn_topology.get(),
+                              xlocation_constraint.get(), 2000, 5));
+  VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), phys_topology.get(),
+                                  vn_topology.get());
   std::ofstream sol_time_file;
   sol_time_file.open((vn_topology_file + ".time").c_str());
   boost::progress_timer pt(sol_time_file);
@@ -158,16 +160,15 @@ int main(int argc, char* argv[]) {
   bool is_successful = mlvne_solver->Solve();
   if (is_successful) {
     unique_ptr<OverlayMapping> vne(vne_sbuilder.BuildVNEmbedding().release());
-    unique_ptr<OverlayMapping> new_ip_links(
-        vne_sbuilder.TranslateEmbeddingToIP(vne.get(), ip_topology.get(), ip_otn_mapping.get()));
+    unique_ptr<OverlayMapping> new_ip_links(vne_sbuilder.TranslateEmbeddingToIP(
+        vne.get(), ip_topology.get(), ip_otn_mapping.get()));
     vne_sbuilder.PrintNodeMapping((vn_topology_file + ".nmap").c_str());
     vne_sbuilder.PrintEdgeMapping((vn_topology_file + ".emap").c_str());
-    vne_sbuilder.PrintMapping(
-        vne.get(), 
-        (vn_topology_file + ".nmap").c_str(), 
-        (vn_topology_file + ".emap").c_str());
+    vne_sbuilder.PrintMapping(vne.get(), (vn_topology_file + ".nmap").c_str(),
+                              (vn_topology_file + ".emap").c_str());
     vne_sbuilder.PrintCost((vn_topology_file + ".cost").c_str());
-    vne_sbuilder.PrintNewIPLinks(new_ip_links.get(), (vn_topology_file + ".new_ip").c_str());
+    vne_sbuilder.PrintNewIPLinks(new_ip_links.get(),
+                                 (vn_topology_file + ".new_ip").c_str());
   }
   vne_sbuilder.PrintSolutionStatus((vn_topology_file + ".status").c_str());
   return 0;

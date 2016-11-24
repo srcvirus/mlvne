@@ -23,7 +23,7 @@ class MultiLayerVNESolver {
  public:
   MultiLayerVNESolver() {}
   MultiLayerVNESolver(Graph *pn_topology, Graph *vn_topology,
-                      std::vector<std::vector<int>> *location_constraint,
+                      std::vector<std::vector<int> > *location_constraint,
                       int cost_new_ip_link, int k = 1);
 
   IloEnv &env() { return env_; }
@@ -38,6 +38,7 @@ class MultiLayerVNESolver {
   void BuildModel();
   bool Solve();
   const static int kInfinity = 100000;
+
  private:
   IloEnv env_;
   IloModel model_;
@@ -47,7 +48,7 @@ class MultiLayerVNESolver {
   Graph *pn_topology_;
   Graph *vn_topology_;
   OverlayMapping *ip_otn_mapping;
-  std::vector<std::vector<int>> *location_constraint_;
+  std::vector<std::vector<int> > *location_constraint_;
   int k_;
   int cost_new_ip_link_;
   // Decision variable for edge mapping.

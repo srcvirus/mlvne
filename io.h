@@ -15,12 +15,12 @@
 
 using boost::movelib::unique_ptr;
 
-typedef std::vector<std::vector<std::string>> csv_vector_t;
+typedef std::vector<std::vector<std::string> > csv_vector_t;
 typedef unique_ptr<csv_vector_t> csv_vector_ptr_t;
 
-unique_ptr<std::map<std::string, std::string>> ParseArgs(int argc,
+unique_ptr<std::map<std::string, std::string> > ParseArgs(int argc,
                                                          char* argv[]) {
-  unique_ptr<std::map<std::string, std::string>> arg_map(
+  unique_ptr<std::map<std::string, std::string> > arg_map(
       new std::map<std::string, std::string>());
   for (int i = 1; i < argc; ++i) {
     char* key = strtok(argv[i], "=");
@@ -85,14 +85,14 @@ unique_ptr<Graph> InitializeTopologyFromFile(const char* filename) {
   return boost::move(graph);
 }
 
-unique_ptr<std::vector<std::vector<int>>> InitializeVNLocationsFromFile(
+unique_ptr<std::vector<std::vector<int> > > InitializeVNLocationsFromFile(
     const char* filename, int num_virtual_nodes) {
   DEBUG("Parsing %s\n", filename);
-  unique_ptr<std::vector<std::vector<int>>> ret_vector(
-      new std::vector<std::vector<int>>(num_virtual_nodes));
+  unique_ptr<std::vector<std::vector<int> > > ret_vector(
+      new std::vector<std::vector<int> >(num_virtual_nodes));
   csv_vector_ptr_t csv_vector = ReadCSVFile(filename);
   if (csv_vector.get() == NULL) {
-    return unique_ptr<std::vector<std::vector<int>>>(NULL);
+    return unique_ptr<std::vector<std::vector<int> > >(NULL);
   }
   DEBUG("Parsing %s successful\n", filename);
   for (int i = 0; i < csv_vector->size(); ++i) {
@@ -141,16 +141,17 @@ unique_ptr<OverlayMapping> InitializeOverlayMappingFromFile(
       mapping->edge_map[overlay_link] = path_t();
     }
     mapping->edge_map[overlay_link].push_back(underlay_link);
-    DEBUG("Current embedding path length of (%d, %d) is %u\n", m, n, mapping->edge_map[overlay_link].size());
+    DEBUG("Current embedding path length of (%d, %d) is %u\n", m, n,
+          mapping->edge_map[overlay_link].size());
   }
   DEBUG("Embedding of %d links read successfully\n", mapping->edge_map.size());
   return boost::move(mapping);
 }
 
-unique_ptr<std::vector<std::vector<int>>> InitializePortInfoFromFile(
+unique_ptr<std::vector<std::vector<int> > > InitializePortInfoFromFile(
     const char* port_info_file) {
-  unique_ptr<std::vector<std::vector<int>>> port_info(
-      new std::vector<std::vector<int>>());
+  unique_ptr<std::vector<std::vector<int> > > port_info(
+      new std::vector<std::vector<int> >());
   csv_vector_ptr_t csv_vector = ReadCSVFile(port_info_file);
   for (int i = 0; i < csv_vector->size(); ++i) {
     const std::vector<std::string>& row = csv_vector->at(i);

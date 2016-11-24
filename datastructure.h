@@ -25,12 +25,12 @@ using boost::ptr_vector;
 typedef struct edge_t {
   int first, second, order;
   edge_t(int f, int s, int o = 0) : first(f), second(s), order(o) {}
-  bool operator <(const edge_t &e) const {
+  bool operator<(const edge_t& e) const {
     if (first != e.first) return first < e.first;
     if (second != e.second) return second < e.second;
     return order < e.order;
   }
-  bool operator ==(const edge_t &e) const {
+  bool operator==(const edge_t& e) const {
     return first == e.first && second == e.second && order == e.order;
   }
 } edge_t;
@@ -46,7 +46,7 @@ inline edge_t ConstructEdge(int u, int v) {
 
 template <typename T>
 struct matrix_t {
-  std::vector<std::vector<T>> matrix;
+  std::vector<std::vector<T> > matrix;
   matrix_t() {}
   matrix_t(int rows, int columns, T fill_value = T())
       : matrix(rows, std::vector<T>(columns, fill_value)) {}
@@ -70,14 +70,15 @@ struct edge_endpoint {
         delay(INF),
         cost(INF),
         is_pseudo_endpoint(false) {}
-  edge_endpoint(int node_id, int order, long bw, int delay, int cost, bool is_pseudo_endpoint)
+  edge_endpoint(int node_id, int order, long bw, int delay, int cost,
+                bool is_pseudo_endpoint)
       : node_id(node_id),
         order(order),
         bandwidth(bw),
         residual_bandwidth(bw),
         delay(delay),
         cost(cost),
-        is_pseudo_endpoint (is_pseudo_endpoint) {}
+        is_pseudo_endpoint(is_pseudo_endpoint) {}
   std::string GetDebugString() const {
     return "node_id = " + boost::lexical_cast<std::string>(node_id) +
            ", order = " + boost::lexical_cast<std::string>(order) +
@@ -95,46 +96,45 @@ struct edge_endpoint {
 class Graph {
  public:
   Graph() {
-    adj_list_ = unique_ptr<std::vector<std::vector<edge_endpoint>>>(
-        new std::vector<std::vector<edge_endpoint>>);
-    port_counts_ = unique_ptr<std::vector<int>>(new std::vector<int>());
-    port_capacities_ = unique_ptr<std::vector<int>>(new std::vector<int>());
-    special_nodes_ = unique_ptr<std::set<int>>(new std::set<int>());
+    adj_list_ = unique_ptr<std::vector<std::vector<edge_endpoint> > >(
+        new std::vector<std::vector<edge_endpoint> >);
+    port_counts_ = unique_ptr<std::vector<int> >(new std::vector<int>());
+    port_capacities_ = unique_ptr<std::vector<int> >(new std::vector<int>());
+    special_nodes_ = unique_ptr<std::set<int> >(new std::set<int>());
     node_count_ = edge_count_ = 0;
   }
 
   Graph(const Graph& g) {
     this->node_count_ = g.node_count_;
     this->edge_count_ = g.edge_count_;
-    this->adj_list_ = unique_ptr<std::vector<std::vector<edge_endpoint>>>(
-        new std::vector<std::vector<edge_endpoint>>(*g.adj_list_.get()));
-    this->port_counts_ = unique_ptr<std::vector<int>>(
+    this->adj_list_ = unique_ptr<std::vector<std::vector<edge_endpoint> > >(
+        new std::vector<std::vector<edge_endpoint> >(*g.adj_list_.get()));
+    this->port_counts_ = unique_ptr<std::vector<int> >(
         new std::vector<int>(*g.port_counts_.get()));
-    this->port_capacities_ = unique_ptr<std::vector<int>>(
+    this->port_capacities_ = unique_ptr<std::vector<int> >(
         new std::vector<int>(*g.port_capacities_.get()));
-    this->special_nodes_ = unique_ptr<std::set<int>>(
-        new std::set<int>(*g.special_nodes_.get()));
+    this->special_nodes_ =
+        unique_ptr<std::set<int> >(new std::set<int>(*g.special_nodes_.get()));
   }
 
   // Accessor methods.
   int node_count() const { return node_count_; }
   int edge_count() const { return edge_count_; }
-  const std::vector<std::vector<edge_endpoint>>* adj_list() const {
-    return static_cast<const std::vector<std::vector<edge_endpoint>>*>(
+  const std::vector<std::vector<edge_endpoint> >* adj_list() const {
+    return static_cast<const std::vector<std::vector<edge_endpoint> >* >(
         adj_list_.get());
   }
   const std::set<int>* special_nodes() const {
     return static_cast<const std::set<int>*>(special_nodes_.get());
   }
 
-  void AddSpecialNode(int u) {
-    special_nodes_->insert(u);
-  }
+  void AddSpecialNode(int u) { special_nodes_->insert(u); }
 
   // u and v are 0-based identifiers of an edge endpoint. An edge is
   // bi-directional, i.e., calling Graph::AddEdge with u = 1, v = 3 will add
   // both (1, 3) and (3, 1) in the graph.
-  void AddEdge(int u, int v, long bw, int delay, int cost, bool is_pseudo_endpoint) {
+  void AddEdge(int u, int v, long bw, int delay, int cost,
+               bool is_pseudo_endpoint) {
     if (adj_list_->size() < u + 1) adj_list_->resize(u + 1);
     if (adj_list_->size() < v + 1) adj_list_->resize(v + 1);
     int order = 0;
@@ -146,14 +146,16 @@ class Graph {
         ++order;
       }
     }
-    adj_list_->at(u).push_back(edge_endpoint(v, order, bw, delay, cost, is_pseudo_endpoint));
-    adj_list_->at(v).push_back(edge_endpoint(u, order, bw, delay, cost, is_pseudo_endpoint));
+    adj_list_->at(u).push_back(
+        edge_endpoint(v, order, bw, delay, cost, is_pseudo_endpoint));
+    adj_list_->at(v).push_back(
+        edge_endpoint(u, order, bw, delay, cost, is_pseudo_endpoint));
     ++edge_count_;
     node_count_ = adj_list_->size();
   }
 
   bool IsPseudoEdge(int u, int v, int order = 0) const {
-    const std::vector<edge_endpoint> &neighbors = adj_list_->at(u);
+    const std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
     std::vector<edge_endpoint>::const_iterator end_point_it;
     for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
          ++end_point_it) {
@@ -272,11 +274,11 @@ class Graph {
   virtual ~Graph() { adj_list_.reset(); }
 
  private:
-  unique_ptr<std::vector<std::vector<edge_endpoint>>> adj_list_;
+  unique_ptr<std::vector<std::vector<edge_endpoint> > > adj_list_;
   int node_count_, edge_count_, total_port_count_;
-  unique_ptr<std::vector<int>> port_capacities_;
-  unique_ptr<std::vector<int>> port_counts_;
-  unique_ptr<std::set<int>> special_nodes_;
+  unique_ptr<std::vector<int> > port_capacities_;
+  unique_ptr<std::vector<int> > port_counts_;
+  unique_ptr<std::set<int> > special_nodes_;
 };
 
 struct OverlayMapping {
