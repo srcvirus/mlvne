@@ -185,6 +185,25 @@ void MultiLayerVNESolver::BuildModel() {
     }
   }
 
+  // Constraint: Only one instance of an IP link is selected between a pair of
+  // IP nodes.
+  for (int m = 0; m < vn_topology_->node_count(); ++m) {
+    const auto& m_neighbors = vn_topology_->adj_list()->at(m);
+    for (const auto vend_point : m_neighbors) {
+      int n = vend_point.node_id;
+      for (int u = 0; u < ip_topology_->node_count(); ++u) {
+        for (int v = 0; v < ip_topology_->node_count(); ++v) {
+          if (u == v) continue;
+          IloIntExpr sum(env_);
+          for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
+            sum += x_mn_uvi_[m][n][u][v][order];
+          }
+          constraints_.add(sum <= 1);
+        }
+      }
+    }
+  }
+
   // Constraint: Capacity constraint for IP links.
   for (int u = 0; u < ip_topology_->node_count(); ++u) {
     for (int v = 0; v < ip_topology_->node_count(); ++v) {
@@ -213,15 +232,15 @@ void MultiLayerVNESolver::BuildModel() {
       for (int u = 0; u < ip_topology_->node_count(); ++u) {
         const auto& neighbors = ip_topology_->adj_list()->at(u);
         IloIntExpr sum(env_);
-        for (const auto end_point : neighbors) {
-          int v = end_point.node_id;
-          int order = end_point.order;
-        // for (int v = 0; v < ip_topology_->node_count(); ++v) {
-        //  if (u == v) continue;
-        //  for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
+        // for (const auto end_point : neighbors) {
+        //   int v = end_point.node_id;
+        //  int order = end_point.order;
+        for (int v = 0; v < ip_topology_->node_count(); ++v) {
+          if (u == v) continue;
+          for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
             sum +=
-                (x_mn_uvi_[m][n][u][v][order] - x_mn_uvi_[m][n][v][u][order]);
-        //  }
+              (x_mn_uvi_[m][n][u][v][order] - x_mn_uvi_[m][n][v][u][order]);
+          }
         }
         constraints_.add(sum == (y_m_u_[m][u] - y_m_u_[n][u]));
       }
