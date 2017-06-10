@@ -5,25 +5,42 @@
 
 class VNESolutionBuilder {
  public:
-  VNESolutionBuilder(MultiLayerVNESolver *vne_solver_ptr, Graph *pn_topology,
-                     Graph *vn_topology)
+  VNESolutionBuilder(MultiLayerVNESolver *vne_solver_ptr, Graph *ip_topology,
+                     Graph *otn_topology, Graph *vn_topology)
       : vne_solver_ptr_(vne_solver_ptr),
-        pn_topology_(pn_topology),
+        ip_topology_(ip_topology),
+        otn_topology_(otn_topology),
         vn_topology_(vn_topology) {}
 
-  void PrintMapping(const OverlayMapping *, const char *, const char *);
-  void PrintEdgeMapping(const char *filename);
-  void PrintNodeMapping(const char *filename);
+  // Prints virtual node to IP node mapping on stdout. If filename is not NULL
+  // then the same output is written to the corresponding file as well. Each
+  // line in the output has the following format:
+  // Virtual node <vnode_id> --> IP node <ip_node_id>
+  void PrintVNodeMapping(const char *filename);
+
+  // Prints virtual link to IP link mapping on stdout. If filename is not NULL
+  // then the same output is written to the corresponding file as well. Each
+  // line in the output has the following format:
+  // Virtual link (<src>, <dst>) --> IP link (<src>, <dst>, <order>).
+  void PrintVLinkMapping(const char *filename);
+
+  // Prints status of running the solver, i.e., Optimal, Infeasible, etc.
   void PrintSolutionStatus(const char *filename);
+
+  // Prints the value of objective function obtained by the solver.
   void PrintCost(const char *filename);
-  void PrintNewIPLinks(const OverlayMapping *vne, const char *filename);
-  unique_ptr<OverlayMapping> BuildVNEmbedding();
-  unique_ptr<OverlayMapping> TranslateEmbeddingToIP(
-      OverlayMapping *vne, Graph *ip_topology, OverlayMapping *ip_otn_mapping);
+
+  // Prints new IP links and their mapping on OTN on stdout. If filename is not
+  // NULL then output is written to the corresponding file as well. Each line in
+  // the output has the following format:
+  // New IP Link (<src>, <dst>, <order>) --> OTN link (<otn_src>, <otn_dst>).
+  // Order is used to break ties for parallel links.
+  void PrintNewIPLinks(const char *filename);
 
  private:
   MultiLayerVNESolver *vne_solver_ptr_;
-  Graph *pn_topology_;
+  Graph *ip_topology_;
+  Graph *otn_topology_;
   Graph *vn_topology_;
 };
 

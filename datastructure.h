@@ -3,9 +3,6 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <boost/lexical_cast.hpp>
-#include <boost/move/unique_ptr.hpp>
-#include <boost/ptr_container/ptr_vector.hpp>
 #include <list>
 #include <map>
 #include <memory>
@@ -16,10 +13,10 @@
 
 #define INF 99999999
 #define MAXN 1000
+#define MAX_PARALLEL_LINKS 10
 #define NIL -1
 
-using boost::movelib::unique_ptr;
-using boost::ptr_vector;
+using std::unique_ptr;
 
 // Type definition for convenience.
 typedef struct edge_t {
@@ -53,41 +50,37 @@ struct matrix_t {
 };
 
 // An entry in an adjacent list. An entry contains the node_id of the endpoint.
-// The entry contains bandwidth, residual bandwidth, delay and cost of the
+// The entry contains bandwidth, residual bandwidth and cost of the
 // corresponding edge.
 struct edge_endpoint {
   int node_id;
   int order;  // In case of parallel links, order is a tiebreaker.
   long bandwidth;
   long residual_bandwidth;
-  int delay;
   int cost;
   bool is_pseudo_endpoint;
   edge_endpoint()
       : node_id(NIL),
         bandwidth(0),
         residual_bandwidth(0),
-        delay(INF),
         cost(INF),
         is_pseudo_endpoint(false) {}
-  edge_endpoint(int node_id, int order, long bw, int delay, int cost,
+  edge_endpoint(int node_id, int order, long bw, int cost,
                 bool is_pseudo_endpoint)
       : node_id(node_id),
         order(order),
         bandwidth(bw),
         residual_bandwidth(bw),
-        delay(delay),
         cost(cost),
         is_pseudo_endpoint(is_pseudo_endpoint) {}
   std::string GetDebugString() const {
-    return "node_id = " + boost::lexical_cast<std::string>(node_id) +
-           ", order = " + boost::lexical_cast<std::string>(order) +
-           ", bandwidth = " + boost::lexical_cast<std::string>(bandwidth) +
+    return "node_id = " + std::to_string(node_id) +
+           ", order = " + std::to_string(order) +
+           ", bandwidth = " + std::to_string(bandwidth) +
            ", residual_bandwidth = " +
-           boost::lexical_cast<std::string>(residual_bandwidth) + ", delay = " +
-           boost::lexical_cast<std::string>(delay) + ", cost = " +
-           boost::lexical_cast<std::string>(cost) + ", is_pseudo_endpoint = " +
-           boost::lexical_cast<std::string>(is_pseudo_endpoint);
+           std::to_string(residual_bandwidth) + ", cost = " +
+           std::to_string(cost) + ", is_pseudo_endpoint = " +
+           std::to_string(is_pseudo_endpoint);
   }
 };
 
@@ -133,63 +126,51 @@ class Graph {
   // u and v are 0-based identifiers of an edge endpoint. An edge is
   // bi-directional, i.e., calling Graph::AddEdge with u = 1, v = 3 will add
   // both (1, 3) and (3, 1) in the graph.
-  void AddEdge(int u, int v, long bw, int delay, int cost,
-               bool is_pseudo_endpoint) {
+  void AddEdge(int u, int v, long bw, int cost, bool is_pseudo_endpoint) {
     if (adj_list_->size() < u + 1) adj_list_->resize(u + 1);
     if (adj_list_->size() < v + 1) adj_list_->resize(v + 1);
     int order = 0;
-    const std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::const_iterator end_point_it;
-    for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
-         ++end_point_it) {
-      if (end_point_it->node_id == v) {
-        ++order;
-      }
+    const auto& neighbors = adj_list_->at(u);
+    for (const auto end_point : neighbors) {
+      if (end_point.node_id == v) ++order;
     }
     adj_list_->at(u).push_back(
-        edge_endpoint(v, order, bw, delay, cost, is_pseudo_endpoint));
+        edge_endpoint(v, order, bw, cost, is_pseudo_endpoint));
     adj_list_->at(v).push_back(
-        edge_endpoint(u, order, bw, delay, cost, is_pseudo_endpoint));
+        edge_endpoint(u, order, bw, cost, is_pseudo_endpoint));
     ++edge_count_;
     node_count_ = adj_list_->size();
   }
 
   bool IsPseudoEdge(int u, int v, int order = 0) const {
-    const std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::const_iterator end_point_it;
-    for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
-         ++end_point_it) {
-      if (end_point_it->node_id == v && end_point_it->order == order)
-        return end_point_it->is_pseudo_endpoint;
+    const auto& neighbors = adj_list_->at(u);
+    for (const auto end_point : neighbors) {
+      if (end_point.node_id == v && end_point.order == order)
+        return end_point.is_pseudo_endpoint;
     }
   }
 
   int GetEdgeCost(int u, int v, int order = 0) const {
-    const std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::const_iterator end_point_it;
-    for (end_point_it = neighbors.begin(); end_point_it < neighbors.end();
-         ++end_point_it) {
-      if (end_point_it->node_id == v && end_point_it->order == order)
-        return end_point_it->cost;
+    const auto& neighbors = adj_list_->at(u);
+    for (const auto end_point : neighbors) {
+      if (end_point.node_id == v && end_point.order == order)
+        return end_point.cost;
     }
     return -1;
   }
 
   long GetEdgeBandwidth(int u, int v, int order = 0) const {
-    const std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::const_iterator end_point_it;
-    for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
-         ++end_point_it) {
-      if (end_point_it->node_id == v && end_point_it->order == order)
-        return end_point_it->bandwidth;
+    const auto& neighbors = adj_list_->at(u);
+    for (const auto end_point : neighbors) {
+      if (end_point.node_id == v && end_point.order == order)
+        return end_point.bandwidth;
     }
     return -1;
   }
 
   void SetEdgeBandwidth(int u, int v, long bw, int order = 0) {
-    std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::iterator end_point_it;
-    for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
+    auto& neighbors = adj_list_->at(u);
+    for (auto end_point_it = neighbors.begin(); end_point_it != neighbors.end();
          ++end_point_it) {
       if (end_point_it->node_id == v && end_point_it->order == order) {
         end_point_it->bandwidth = bw;
@@ -199,21 +180,18 @@ class Graph {
   }
 
   long GetEdgeResidualBandwidth(int u, int v, int order = 0) const {
-    const std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::const_iterator end_point_it;
-    for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
-         ++end_point_it) {
-      if (end_point_it->node_id == v && end_point_it->order == order)
-        return end_point_it->residual_bandwidth;
+    const auto& neighbors = adj_list_->at(u);
+    for (const auto end_point : neighbors) {
+      if (end_point.node_id == v && end_point.order == order)
+        return end_point.residual_bandwidth;
     }
     return -1;
   }
 
   void SetEdgeResidualBandwidth(int u, int v, long rbw, int order = 0) {
-    std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::iterator end_point_it;
-    for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
-         ++end_point_it) {
+    auto& neighbors = adj_list_->at(u);
+    for (auto end_point_it = neighbors.begin(); end_point_it != neighbors.end();
+        ++end_point_it) {
       if (end_point_it->node_id == v && end_point_it->order == order) {
         end_point_it->residual_bandwidth = rbw;
         break;
@@ -223,20 +201,18 @@ class Graph {
 
   // Returns the cumulative bandwidth of all links originating at node u.
   long GetTotalNodeBandwidth(int u) const {
-    const std::vector<edge_endpoint>& neighbors = adj_list_->at(u);
-    std::vector<edge_endpoint>::const_iterator end_point_it;
+    const auto& neighbors = adj_list_->at(u);
     long total_bw = 0;
-    for (end_point_it = neighbors.begin(); end_point_it != neighbors.end();
-         ++end_point_it) {
-      total_bw += end_point_it->bandwidth;
+    for (const auto end_point : neighbors) {
+      total_bw += end_point.bandwidth;
     }
     return total_bw;
   }
 
-  int GetNodeDegree(int u) const { return adj_list_->at(u).size(); }
-  int GetPortCapacity(int u) const { return port_capacities_->at(u); }
-  int GetPortCount(int u) const { return port_counts_->at(u); }
-  int GetResidualPortCount(int u) const {
+  inline int GetNodeDegree(int u) const { return adj_list_->at(u).size(); }
+  inline int GetPortCapacity(int u) const { return port_capacities_->at(u); }
+  inline int GetPortCount(int u) const { port_counts_->at(u); }
+  inline int GetResidualPortCount(int u) const {
     return port_counts_->at(u) - GetNodeDegree(u);
   }
 
@@ -256,14 +232,13 @@ class Graph {
 
   std::string GetDebugString() const {
     std::string ret_string =
-        "node_count = " + boost::lexical_cast<std::string>(node_count_);
+        "node_count = " + std::to_string(node_count_);
     ret_string += ", edge_count = " +
-                  boost::lexical_cast<std::string>(edge_count_) + "\n";
+                  std::to_string(edge_count_) + "\n";
     for (int i = 0; i < node_count_; ++i) {
-      const std::vector<edge_endpoint>& neighbors = adj_list_->at(i);
-      ret_string += boost::lexical_cast<std::string>(i) + " --> ";
-      for (int i = 0; i < neighbors.size(); ++i) {
-        const edge_endpoint& neighbor = neighbors[i];
+      const auto& neighbors = adj_list_->at(i);
+      ret_string += std::to_string(i) + " --> ";
+      for (const auto neighbor : neighbors) {
         ret_string += "\t(" + neighbor.GetDebugString() + ")\n";
       }
       ret_string += "\n";

@@ -4,8 +4,10 @@
 #include "util.h"
 #include "vne_solution_builder.h"
 
-#include <time.h>
-#include <boost/progress.hpp>
+#include <chrono>
+#include <memory>
+
+using std::unique_ptr;
 
 const std::string kUsage =
     "./mlvn "
@@ -17,7 +19,7 @@ const std::string kUsage =
     "\t--vn_topology_file=<vn_topology_file>\n"
     "\t--vn_location_file=<vn_location_file>\n";
 
-unique_ptr<Graph> TransformSubstrateTopology(
+/* unique_ptr<Graph> TransformSubstrateTopology(
     const Graph* otn_topology, const Graph* ip_topology,
     const OverlayMapping* ip_otn_mapping) {
   unique_ptr<Graph> pn_topology(new Graph());
@@ -65,8 +67,8 @@ unique_ptr<Graph> TransformSubstrateTopology(
                            ip_link_cost, true);
     }
   }
-  return boost::move(pn_topology);
-}
+  return std::move(pn_topology);
+} */
 
 int main(int argc, char* argv[]) {
   if (argc < 8) {
@@ -101,6 +103,7 @@ int main(int argc, char* argv[]) {
       printf("Unrecognized command line option: %s\n",
              arg_map_it->first.c_str());
       printf("%s\n", kUsage.c_str());
+      exit(1);
     }
   }
 
@@ -130,45 +133,37 @@ int main(int argc, char* argv[]) {
     ip_topology->SetPortCapacity(u, port_capacity);
   }
 
-  // Collaps IP and OTN into one layer.
-  unique_ptr<Graph> phys_topology(
-      TransformSubstrateTopology(otn_topology.get(), ip_topology.get(),
-                                 ip_otn_mapping.get())
-          .release());
-
-  // Create a new location constraint set w.r.t the collapsed SN.
-  unique_ptr<std::vector<std::vector<int> > > xlocation_constraint(
-      new std::vector<std::vector<int> >(location_constraint->size()));
-  for (int i = 0; i < location_constraint->size(); ++i) {
-    for (int j = 0; j < location_constraint->at(i).size(); ++j) {
-      int loc = location_constraint->at(i)[j];
-      DEBUG("prev_loc = %d, new_loc = %d\n", loc,
-            ip_otn_mapping->node_map[loc]);
-      xlocation_constraint->at(i).push_back(ip_otn_mapping->node_map[loc]);
-    }
-  }
   // printf("%s\n", phys_topology->GetDebugString().c_str());
   unique_ptr<MultiLayerVNESolver> mlvne_solver(
-      new MultiLayerVNESolver(phys_topology.get(), vn_topology.get(),
-                              xlocation_constraint.get(), 2000, 5));
-  VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), phys_topology.get(),
-                                  vn_topology.get());
-  std::ofstream sol_time_file;
-  sol_time_file.open((vn_topology_file + ".time").c_str());
-  boost::progress_timer pt(sol_time_file);
+      new MultiLayerVNESolver(ip_topology.get(), otn_topology.get(),
+        vn_topology.get(), 
+        ip_otn_mapping.get(), 
+        location_constraint.get()));
+  auto start_time = std::chrono::high_resolution_clock::now();
   mlvne_solver->BuildModel();
-  bool is_successful = mlvne_solver->Solve();
-  if (is_successful) {
-    unique_ptr<OverlayMapping> vne(vne_sbuilder.BuildVNEmbedding().release());
-    unique_ptr<OverlayMapping> new_ip_links(vne_sbuilder.TranslateEmbeddingToIP(
-        vne.get(), ip_topology.get(), ip_otn_mapping.get()));
-    vne_sbuilder.PrintNodeMapping((vn_topology_file + ".nmap").c_str());
-    vne_sbuilder.PrintEdgeMapping((vn_topology_file + ".emap").c_str());
-    vne_sbuilder.PrintMapping(vne.get(), (vn_topology_file + ".nmap").c_str(),
-                              (vn_topology_file + ".emap").c_str());
+  bool success = mlvne_solver->Solve();
+  auto end_time = std::chrono::high_resolution_clock::now();
+  unsigned long long elapsed_time = 
+    std::chrono::duration_cast<std::chrono::nanoseconds>(
+                       end_time - start_time).count();
+
+  if (success) {
+    std::cout << "Success !" << std::endl;
+  } else std::cout << "Failure !" << std::endl;
+
+  VNESolutionBuilder vne_sbuilder(mlvne_solver.get(),
+                                  ip_topology.get(),
+                                  otn_topology.get(),
+                                  vn_topology.get());
+  FILE *sol_time_file = fopen((vn_topology_file + ".time").c_str(), "w");
+  fprintf(sol_time_file, "Solution time: %llu.%llus\n", elapsed_time / 1000000000LL,
+                       elapsed_time % 1000000000LL);
+  fclose(sol_time_file);
+  if (success) {
+    vne_sbuilder.PrintVNodeMapping((vn_topology_file + ".nmap").c_str());
+    vne_sbuilder.PrintVLinkMapping((vn_topology_file + ".emap").c_str());
     vne_sbuilder.PrintCost((vn_topology_file + ".cost").c_str());
-    vne_sbuilder.PrintNewIPLinks(new_ip_links.get(),
-                                 (vn_topology_file + ".new_ip").c_str());
+    vne_sbuilder.PrintNewIPLinks((vn_topology_file + ".new_ip").c_str());
   }
   vne_sbuilder.PrintSolutionStatus((vn_topology_file + ".status").c_str());
   return 0;

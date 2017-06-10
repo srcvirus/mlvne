@@ -41,46 +41,4 @@ T GetNthPercentile(const std::vector<T>& data, int n);
 template <typename T>
 std::vector<std::pair<T, double> > GetCDF(const std::vector<T>& data);
 
-// Inverses a set of VN Embedding and represents them in terms of Physical
-// network entities.
-// unique_ptr<ReverseEmbedding> GetInverseEmbedding(
-//     const Graph* physical_topology, const ptr_vector<OverlayMapping>&
-//     embeddings,
-//     int num_vns);
-
-// Returns the cost of allocating bandwidth for embedding all the vns in
-// virt_topology on phys_topology.
-unsigned long GetBandwidthCost(
-    const Graph* phys_topology, const boost::ptr_vector<Graph>& virt_topologies,
-    const boost::ptr_vector<OverlayMapping>& vn_embeddings);
-
-// Returns the cost of bottleneck physical links in the physical topology.
-// int GetNumBottleneckLinks(const Graph* phys_topology,
-//                           const boost::ptr_vector<Graph>& virt_topologies,
-//                           const boost::ptr_vector<OverlayMapping>&
-//                           vn_embeddings,
-//                           const VNRParameters* vnr_param);
-
-// Returns the maximum physical link utilization.
-double GetMaxPLinkUtilization(
-    const Graph* phys_topology, const boost::ptr_vector<Graph>& virt_topologies,
-    const boost::ptr_vector<OverlayMapping>& vn_embeddings);
-
-// Compute the cost of a set of embeddings using our cost function.
-// double CostFunction(const Graph* phys_topology,
-//                     const boost::ptr_vector<Graph>& virt_topologies,
-//                     const boost::ptr_vector<OverlayMapping>& vn_embeddings,
-//                     const VNRParameters* vnr_param);
-
-// If the input physical network contains residual bandwidth then compute the
-// bandwidth capacity of the physical links by adding the bandwidths of embedded
-// virtual links.
-void ComputePhysicalNetworkCapacity(
-    Graph* phys_topology, const boost::ptr_vector<Graph>& virt_topologies,
-    const boost::ptr_vector<OverlayMapping>& vn_embeddings);
-
-// Write VN embeddings to file.
-void WriteSolutionToFile(const boost::ptr_vector<OverlayMapping>& vn_embeddings,
-                         const std::string& vnr_directory,
-                         const std::vector<int>& valid_indices);
 #endif  // UTIL_H_

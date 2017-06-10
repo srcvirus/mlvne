@@ -7,13 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <boost/move/unique_ptr.hpp>
-#include <boost/move/utility.hpp>
 #include <map>
 #include <memory>
 #include <string>
 
-using boost::movelib::unique_ptr;
+using std::unique_ptr;
 
 typedef std::vector<std::vector<std::string> > csv_vector_t;
 typedef unique_ptr<csv_vector_t> csv_vector_ptr_t;
@@ -28,7 +26,7 @@ unique_ptr<std::map<std::string, std::string> > ParseArgs(int argc,
     DEBUG(" [%s] => [%s]\n", key, value);
     arg_map->insert(std::make_pair(key, value));
   }
-  return boost::move(arg_map);
+  return std::move(arg_map);
 }
 
 csv_vector_ptr_t ReadCSVFile(const char* filename) {
@@ -36,7 +34,7 @@ csv_vector_ptr_t ReadCSVFile(const char* filename) {
   FILE* file_ptr = fopen(filename, "r");
   if (!file_ptr) {
     DEBUG("Invalid file %s\n", filename);
-    return csv_vector_ptr_t(NULL);
+    return nullptr;
   }
   const static int kBufferSize = 1024;
   char line_buffer[kBufferSize];
@@ -57,32 +55,32 @@ csv_vector_ptr_t ReadCSVFile(const char* filename) {
   }
   fclose(file_ptr);
   DEBUG("Parsed %d lines\n", static_cast<int>(ret_vector->size()));
-  return boost::move(ret_vector);
+  return std::move(ret_vector);
 }
 
 unique_ptr<Graph> InitializeTopologyFromFile(const char* filename) {
   int node_count = 0, edge_count = 0;
   csv_vector_ptr_t csv_vector = ReadCSVFile(filename);
   if (csv_vector.get() == NULL) {
-    return unique_ptr<Graph>(NULL);
+    return nullptr; 
   }
   unique_ptr<Graph> graph(new Graph());
-  for (int i = 0; i < csv_vector->size(); ++i) {
-    const std::vector<std::string>& row = csv_vector->at(i);
+  node_count = std::stoi(csv_vector->at(0)[0]);
+  for (int i = 1; i < csv_vector->size(); ++i) {
+    const auto& row = csv_vector->at(i);
 
     // Each line has the following format:
-    // LinkID, SourceID, DestinationID, PeerID, Cost, Bandwidth, Delay.
-    int u = atoi(row[1].c_str());
-    int v = atoi(row[2].c_str());
-    int cost = atoi(row[4].c_str());
-    long bw = atol(row[5].c_str());
-    int delay = atoi(row[6].c_str());
+    // SourceID, DestinationID, Cost, Bandwidth.
+    int u = std::stoi(row[0]);
+    int v = std::stoi(row[1]);
+    int cost = std::stoi(row[2]);
+    long bw = std::stol(row[3]);
 
-    DEBUG("Line[%d]: u = %d, v = %d, cost = %d, bw = %ld, delay = %d\n", i, u,
-          v, cost, bw, delay);
-    graph->AddEdge(u, v, bw, delay, cost, false);
+    DEBUG("Line[%d]: u = %d, v = %d, cost = %d, bw = %ld\n", i, u, v, cost,
+          bw);
+    graph->AddEdge(u, v, bw, cost, false);
   }
-  return boost::move(graph);
+  return std::move(graph);
 }
 
 unique_ptr<std::vector<std::vector<int> > > InitializeVNLocationsFromFile(
@@ -92,7 +90,7 @@ unique_ptr<std::vector<std::vector<int> > > InitializeVNLocationsFromFile(
       new std::vector<std::vector<int> >(num_virtual_nodes));
   csv_vector_ptr_t csv_vector = ReadCSVFile(filename);
   if (csv_vector.get() == NULL) {
-    return unique_ptr<std::vector<std::vector<int> > >(NULL);
+    return nullptr;
   }
   DEBUG("Parsing %s successful\n", filename);
   for (int i = 0; i < csv_vector->size(); ++i) {
@@ -102,7 +100,7 @@ unique_ptr<std::vector<std::vector<int> > > InitializeVNLocationsFromFile(
       ret_vector->at(vnode_id).push_back(atoi(row[j].c_str()));
     }
   }
-  return boost::move(ret_vector);
+  return std::move(ret_vector);
 }
 
 unique_ptr<OverlayMapping> InitializeOverlayMappingFromFile(
@@ -114,12 +112,12 @@ unique_ptr<OverlayMapping> InitializeOverlayMappingFromFile(
   // Initialize node mapping.
   csv_vector_ptr_t nmap_csv_vector = ReadCSVFile(nmap_file);
   if (nmap_csv_vector.get() == NULL) {
-    return unique_ptr<OverlayMapping>(NULL);
+    return nullptr;
   }
   for (int i = 0; i < nmap_csv_vector->size(); ++i) {
     const std::vector<std::string>& row = nmap_csv_vector->at(i);
-    int vnode = boost::lexical_cast<int>(row[0].c_str());
-    int vnode_map = boost::lexical_cast<int>(row[1].c_str());
+    int vnode = std::stoi(row[0].c_str());
+    int vnode_map = std::stoi(row[1].c_str());
     if (vnode > static_cast<int>(mapping->node_map.size()) - 1)
       mapping->node_map.resize(vnode + 1);
     mapping->node_map[vnode] = vnode_map;
@@ -128,14 +126,14 @@ unique_ptr<OverlayMapping> InitializeOverlayMappingFromFile(
   // Initialize edge mapping.
   csv_vector_ptr_t emap_csv_vector = ReadCSVFile(emap_file);
   if (emap_csv_vector.get() == NULL) {
-    return unique_ptr<OverlayMapping>(NULL);
+    return nullptr;
   }
   for (int i = 0; i < emap_csv_vector->size(); ++i) {
     const std::vector<std::string>& row = emap_csv_vector->at(i);
-    int m = boost::lexical_cast<int>(row[0].c_str());
-    int n = boost::lexical_cast<int>(row[1].c_str());
-    int u = boost::lexical_cast<int>(row[2].c_str());
-    int v = boost::lexical_cast<int>(row[3].c_str());
+    int m = std::stoi(row[0].c_str());
+    int n = std::stoi(row[1].c_str());
+    int u = std::stoi(row[2].c_str());
+    int v = std::stoi(row[3].c_str());
     edge_t overlay_link(m, n), underlay_link(u, v);
     if (mapping->edge_map.find(overlay_link) == mapping->edge_map.end()) {
       mapping->edge_map[overlay_link] = path_t();
@@ -145,7 +143,7 @@ unique_ptr<OverlayMapping> InitializeOverlayMappingFromFile(
           mapping->edge_map[overlay_link].size());
   }
   DEBUG("Embedding of %d links read successfully\n", mapping->edge_map.size());
-  return boost::move(mapping);
+  return std::move(mapping);
 }
 
 unique_ptr<std::vector<std::vector<int> > > InitializePortInfoFromFile(
@@ -155,16 +153,16 @@ unique_ptr<std::vector<std::vector<int> > > InitializePortInfoFromFile(
   csv_vector_ptr_t csv_vector = ReadCSVFile(port_info_file);
   for (int i = 0; i < csv_vector->size(); ++i) {
     const std::vector<std::string>& row = csv_vector->at(i);
-    int u = boost::lexical_cast<int>(row[0].c_str());
-    int num_ports = boost::lexical_cast<int>(row[1].c_str());
-    int port_capacity = boost::lexical_cast<int>(row[2].c_str());
+    int u = std::stoi(row[0].c_str());
+    int num_ports = std::stoi(row[1].c_str());
+    int port_capacity = std::stoi(row[2].c_str());
     std::vector<int> v;
     v.push_back(u);
     v.push_back(num_ports);
     v.push_back(port_capacity);
     port_info->push_back(v);
   }
-  return boost::move(port_info);
+  return std::move(port_info);
 }
 
 #endif  // IO_H_
