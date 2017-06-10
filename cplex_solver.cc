@@ -16,6 +16,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
   location_constraint_ = location_constraint;
 
   // Initialize bandwidth and cost matrix.
+  DEBUG("Initializing bw/cost matrix.\n");
   b_uvi_.resize(ip_topology_->node_count());
   cost_uvi_.resize(ip_topology_->node_count());
   for (int i = 0; i < ip_topology_->node_count(); ++i) {
@@ -55,6 +56,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
   tau_u_p_ = IloInt2dArray(env_, ip_topology_->node_count());
 
   // Decision variable initialization for virtual network.
+  DEBUG("Initializeing variables for VN to IP link embedding.\n");
   for (int m = 0; m < vn_topology_->node_count(); ++m) {
     x_mn_uvi_[m] = IloIntVar4dArray(env_, vn_topology_->node_count());
     for (int n = 0; n < vn_topology_->node_count(); ++n) {
@@ -68,6 +70,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
       }
     }
   }
+  DEBUG("Initializing variables for VNode to IP node mapping.\n");
   for (int m = 0; m < vn_topology_->node_count(); ++m) {
     y_m_u_[m] = IloIntVarArray(env_, ip_topology_->node_count(), 0, 1);
     l_m_u_[m] = IloIntArray(env_, ip_topology_->node_count(), 0, 1);
@@ -138,6 +141,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
 }
 
 void MultiLayerVNESolver::BuildModel() {
+  DEBUG("Building model.\n");
   // Constraint: A virtual link can be mapped to an existing or a newly created
   // IP link.
   for (int m = 0; m < vn_topology_->node_count(); ++m) {
