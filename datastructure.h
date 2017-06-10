@@ -211,7 +211,7 @@ class Graph {
 
   inline int GetNodeDegree(int u) const { return adj_list_->at(u).size(); }
   inline int GetPortCapacity(int u) const { return port_capacities_->at(u); }
-  inline int GetPortCount(int u) const { port_counts_->at(u); }
+  inline int GetPortCount(int u) const { return port_counts_->at(u); }
   inline int GetResidualPortCount(int u) const {
     return port_counts_->at(u) - GetNodeDegree(u);
   }
