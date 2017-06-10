@@ -41,6 +41,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
                           std::min(ip_topology_->GetPortCapacity(u),
                                    ip_topology_->GetPortCapacity(v)));
       cost_uvi_[u][v].resize(ip_topology_->GetPortCount(u), 1);
+      DEBUG("ip_topology_->GetPortCount(u) = %d\n", ip_topology_->GetPortCount(u));
     }
   }
 
