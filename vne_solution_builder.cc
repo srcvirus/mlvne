@@ -175,8 +175,12 @@ void VNESolutionBuilder::PrintVLinkMapping(const char *filename) {
       int n = vend_point.node_id;
       if (m < n) continue;
       for (int u = 0; u < ip_topology_->node_count(); ++u) {
-        for (int v = 0; v < ip_topology_->node_count(); ++v) {
-          for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
+        const auto& u_neighbors = ip_topology_->adj_list()->at(u);
+        for (const auto end_point : u_neighbors) {
+          int v = end_point.node_id;
+          int order = end_point.order;
+        //for (int v = 0; v < ip_topology_->node_count(); ++v) {
+        //  for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
             if (fabs(cplex.getValue(x_mn_uvi[m][n][u][v][order]) - 1) < EPS) {
               printf("Virtual link (%d, %d) --> IP link (%d, %d, %d)\n", m, n,
                      u, v, order);
@@ -190,7 +194,7 @@ void VNESolutionBuilder::PrintVLinkMapping(const char *filename) {
         }
       }
     }
-  }
+  // }
   if (outfile) fclose(outfile);
 }
 
