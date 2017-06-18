@@ -3,7 +3,6 @@ import sys
 import os
 import subprocess
 
-
 def execute_one_experiment(executable, otn_topology_file, ip_topology_file,
                            ip_node_mapping_file, ip_link_mapping_file,
                            ip_port_info_file, vn_topology_file,
