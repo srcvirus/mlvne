@@ -78,7 +78,8 @@ int main(int argc, char* argv[]) {
   }
   // Parse the command line arguments.
   using std::string;
-  unique_ptr<std::map<string, string> > arg_map(ParseArgs(argc, argv).release());
+  unique_ptr<std::map<string, string> > arg_map(
+      ParseArgs(argc, argv).release());
   string otn_topology_file = "", ip_topology_file = "", ip_port_info_file = "",
          ip_node_mapping_file = "", ip_link_mapping_file = "",
          vn_topology_file = "", vn_location_file = "";
@@ -134,30 +135,28 @@ int main(int argc, char* argv[]) {
   }
 
   // printf("%s\n", phys_topology->GetDebugString().c_str());
-  unique_ptr<MultiLayerVNESolver> mlvne_solver(
-      new MultiLayerVNESolver(ip_topology.get(), otn_topology.get(),
-        vn_topology.get(), 
-        ip_otn_mapping.get(), 
-        location_constraint.get()));
+  unique_ptr<MultiLayerVNESolver> mlvne_solver(new MultiLayerVNESolver(
+      ip_topology.get(), otn_topology.get(), vn_topology.get(),
+      ip_otn_mapping.get(), location_constraint.get()));
   auto start_time = std::chrono::high_resolution_clock::now();
   mlvne_solver->BuildModel();
   bool success = mlvne_solver->Solve();
   auto end_time = std::chrono::high_resolution_clock::now();
-  unsigned long long elapsed_time = 
-    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                       end_time - start_time).count();
+  unsigned long long elapsed_time =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(end_time -
+                                                           start_time)
+          .count();
 
   if (success) {
     std::cout << "Success !" << std::endl;
-  } else std::cout << "Failure !" << std::endl;
+  } else
+    std::cout << "Failure !" << std::endl;
 
-  VNESolutionBuilder vne_sbuilder(mlvne_solver.get(),
-                                  ip_topology.get(),
-                                  otn_topology.get(),
-                                  vn_topology.get());
-  FILE *sol_time_file = fopen((vn_topology_file + ".time").c_str(), "w");
-  fprintf(sol_time_file, "Solution time: %llu.%llus\n", elapsed_time / 1000000000LL,
-                       elapsed_time % 1000000000LL);
+  VNESolutionBuilder vne_sbuilder(mlvne_solver.get(), ip_topology.get(),
+                                  otn_topology.get(), vn_topology.get());
+  FILE* sol_time_file = fopen((vn_topology_file + ".time").c_str(), "w");
+  fprintf(sol_time_file, "Solution time: %llu.%llus\n",
+          elapsed_time / 1000000000LL, elapsed_time % 1000000000LL);
   fclose(sol_time_file);
   if (success) {
     vne_sbuilder.PrintVNodeMapping((vn_topology_file + ".nmap").c_str());

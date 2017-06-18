@@ -41,7 +41,8 @@ MultiLayerVNESolver::MultiLayerVNESolver(
                           std::min(ip_topology_->GetPortCapacity(u),
                                    ip_topology_->GetPortCapacity(v)));
       cost_uvi_[u][v].resize(ip_topology_->GetPortCount(u), 1);
-      DEBUG("ip_topology_->GetPortCount(u) = %d\n", ip_topology_->GetPortCount(u));
+      DEBUG("ip_topology_->GetPortCount(u) = %d\n",
+            ip_topology_->GetPortCount(u));
     }
   }
 
@@ -92,7 +93,8 @@ MultiLayerVNESolver::MultiLayerVNESolver(
   for (int u = 0; u < ip_topology_->node_count(); ++u) {
     gamma_uvi_[u] = IloIntVar2dArray(env_, ip_topology_->node_count());
     for (int v = 0; v < ip_topology_->node_count(); ++v) {
-      gamma_uvi_[u][v] = IloIntVarArray(env_, ip_topology_->GetPortCount(u), 0, 1);
+      gamma_uvi_[u][v] =
+          IloIntVarArray(env_, ip_topology_->GetPortCount(u), 0, 1);
     }
   }
 
@@ -118,8 +120,7 @@ MultiLayerVNESolver::MultiLayerVNESolver(
   // Initialize IP to OTN node attachment input variable.
   for (int u = 0; u < ip_topology_->node_count(); ++u) {
     tau_u_p_[u] = IloIntArray(env_, otn_topology_->node_count(), 0, 1);
-    for (int p = 0; p < otn_topology_->node_count(); ++p)
-      tau_u_p_[u][p] = 0;
+    for (int p = 0; p < otn_topology_->node_count(); ++p) tau_u_p_[u][p] = 0;
     tau_u_p_[u][ip_otn_mapping->node_map[u]] = 1;
   }
 
@@ -149,6 +150,7 @@ void MultiLayerVNESolver::BuildModel() {
     const auto& m_neighbors = vn_topology_->adj_list()->at(m);
     for (const auto vend_point : m_neighbors) {
       int n = vend_point.node_id;
+      if (m < n) continue;
       for (int u = 0; u < ip_topology_->node_count(); ++u) {
         for (int v = 0; v < ip_topology_->node_count(); ++v) {
           if (u == v) continue;
@@ -167,12 +169,12 @@ void MultiLayerVNESolver::BuildModel() {
     const auto& m_neighbors = vn_topology_->adj_list()->at(m);
     for (const auto vend_point : m_neighbors) {
       int n = vend_point.node_id;
+      if (m < n) continue;
       IloIntExpr sum(env_);
       for (int u = 0; u < ip_topology_->node_count(); ++u) {
         for (int v = 0; v < ip_topology_->node_count(); ++v) {
           if (u == v) continue;
-          for (int order = 0; order < ip_topology_->GetPortCount(u);
-              ++order) {
+          for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
             constraints_.add(IloIfThen(env_, x_mn_uvi_[m][n][u][v][order] == 1,
                                        x_mn_uvi_[m][n][v][u][order] == 0));
             constraints_.add(IloIfThen(env_, x_mn_uvi_[m][n][v][u][order] == 1,
@@ -191,12 +193,18 @@ void MultiLayerVNESolver::BuildModel() {
     const auto& m_neighbors = vn_topology_->adj_list()->at(m);
     for (const auto vend_point : m_neighbors) {
       int n = vend_point.node_id;
+      if (m < n) continue;
       for (int u = 0; u < ip_topology_->node_count(); ++u) {
         for (int v = 0; v < ip_topology_->node_count(); ++v) {
           if (u == v) continue;
           IloIntExpr sum(env_);
           for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
             sum += x_mn_uvi_[m][n][u][v][order];
+            for (int order_other = 0;
+                 order_other < ip_topology_->GetPortCount(u); ++order_other) {
+              constraints_.add(IloIfThen(env_, gamma_uvi_[u][v][order] == 1,
+                                         gamma_uvi_[v][u][order_other] == 0));
+            }
           }
           constraints_.add(sum <= 1);
         }
@@ -204,6 +212,25 @@ void MultiLayerVNESolver::BuildModel() {
     }
   }
 
+  // Constraint: If a new IP link is created, it should be used to embed at
+  // least one virtual link.
+  /* for (int u = 0; u < ip_topology_->node_count(); ++u) {
+    for (int v = 0; v < ip_topology_->node_count(); ++v) {
+      if (u == v) continue;
+      for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
+        IloIntExpr sum(env_);
+        for (int m = 0; m < vn_topology_->node_count(); ++m) {
+          const auto& m_neighbors = vn_topology_->adj_list()->at(m);
+          for (const auto vend_point : m_neighbors) {
+            int n = vend_point.node_id;
+            if (m < n) continue;
+            sum += x_mn_uvi_[m][n][u][v][order];
+          }
+        }
+        constraints_.add(sum >= gamma_uvi_[u][v][order]);
+      }
+    }
+  } */
   // Constraint: Capacity constraint for IP links.
   for (int u = 0; u < ip_topology_->node_count(); ++u) {
     for (int v = 0; v < ip_topology_->node_count(); ++v) {
@@ -215,6 +242,7 @@ void MultiLayerVNESolver::BuildModel() {
           for (const auto vend_point : m_neighbors) {
             int n = vend_point.node_id;
             long bandwidth = vend_point.bandwidth;
+            if (m < n) continue;
             sum += (x_mn_uvi_[m][n][u][v][order] * bandwidth);
           }
         }
@@ -229,6 +257,7 @@ void MultiLayerVNESolver::BuildModel() {
     const auto& m_neighbors = vn_topology_->adj_list()->at(m);
     for (const auto vend_point : m_neighbors) {
       int n = vend_point.node_id;
+      if (m < n) continue;
       for (int u = 0; u < ip_topology_->node_count(); ++u) {
         const auto& neighbors = ip_topology_->adj_list()->at(u);
         IloIntExpr sum(env_);
@@ -239,7 +268,7 @@ void MultiLayerVNESolver::BuildModel() {
           if (u == v) continue;
           for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
             sum +=
-              (x_mn_uvi_[m][n][u][v][order] - x_mn_uvi_[m][n][v][u][order]);
+                (x_mn_uvi_[m][n][u][v][order] - x_mn_uvi_[m][n][v][u][order]);
           }
         }
         constraints_.add(sum == (y_m_u_[m][u] - y_m_u_[n][u]));
@@ -359,7 +388,7 @@ void MultiLayerVNESolver::BuildModel() {
           for (const auto end_point : p_neighbors) {
             int q = end_point.node_id;
             objective_ += (z_uvi_pq_[u][v][order][p][q] * b_uvi_[u][v][order] *
-                end_point.cost);
+                           end_point.cost);
           }
         }
       }
