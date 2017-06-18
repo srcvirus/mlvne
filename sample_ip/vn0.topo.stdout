@@ -1,0 +1,42 @@
+Tried aggregator 2 times.
+MIP Presolve eliminated 1255 rows and 429 columns.
+MIP Presolve modified 7090 coefficients.
+Aggregator did 361 substitutions.
+Reduced MIP has 5845 rows, 4501 columns, and 22408 nonzeros.
+Reduced MIP has 4501 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.08 sec. (66.25 ticks)
+Found incumbent of value 89.000000 after 0.12 sec. (88.65 ticks)
+Probing time = 0.01 sec. (1.30 ticks)
+Tried aggregator 1 time.
+Presolve time = 0.02 sec. (12.76 ticks)
+Probing time = 0.00 sec. (1.30 ticks)
+Clique table members: 4556.
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: deterministic, using up to 64 threads.
+Root relaxation solution time = 0.25 sec. (11.30 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+*     0+    0                           89.0000        0.0000      137  100.00%
+*     0     0      integral     0       74.0000       74.0000      137    0.00%
+Elapsed time = 0.51 sec. (126.02 ticks, tree = 0.00 MB, solutions = 2)
+
+Root node processing (before b&c):
+  Real time             =    0.36 sec. (21.65 ticks)
+Parallel b&c, 64 threads:
+  Real time             =    0.00 sec. (0.00 ticks)
+  Sync time (average)   =    0.00 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =    0.36 sec. (21.65 ticks)
+Success!
+Virtual node 0 --> IP node 0
+Virtual node 1 --> IP node 4
+Virtual link (1, 0) --> IP link (3, 0, 0)
+Virtual link (1, 0) --> IP link (4, 3, 2)
+Cost = 74.000000
+New IP link (3, 4, 7) --> OTN link (4, 8)
+New IP link (4, 3, 2) --> OTN link (8, 4)
+Solution status = Optimal
