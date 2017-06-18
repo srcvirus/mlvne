@@ -183,9 +183,6 @@ void VNESolutionBuilder::PrintVLinkMapping(const char *filename) {
                       u, v, order);
               if (outfile) {
                 fprintf(outfile,"%d,%d,%d,%d,%d\n", m, n, u, v, order);
-                // fprintf(outfile,
-                //         "Virtual link (%d, %d) --> IP link (%d, %d, %d)\n", m,
-                //         n, u, v, order);
               }
             }
           }
@@ -207,7 +204,6 @@ void VNESolutionBuilder::PrintVNodeMapping(const char *filename) {
         printf("Virtual node %d --> IP node %d\n", m, u);
         if (outfile) {
           fprintf(outfile, "%d,%d\n", m, u);
-          // fprintf(outfile, "Virtual node %d --> IP node %d\n", m, u);
         }
       }
     }
