@@ -19,57 +19,6 @@ const std::string kUsage =
     "\t--vn_topology_file=<vn_topology_file>\n"
     "\t--vn_location_file=<vn_location_file>\n";
 
-/* unique_ptr<Graph> TransformSubstrateTopology(
-    const Graph* otn_topology, const Graph* ip_topology,
-    const OverlayMapping* ip_otn_mapping) {
-  unique_ptr<Graph> pn_topology(new Graph());
-  for (int i = 0; i < otn_topology->node_count(); ++i) {
-    const std::vector<edge_endpoint>& adj_list =
-        otn_topology->adj_list()->at(i);
-    for (int j = 0; j < adj_list.size(); ++j) {
-      const edge_endpoint& endpoint = adj_list[j];
-      if (i > endpoint.node_id) continue;
-      pn_topology->AddEdge(i, endpoint.node_id, endpoint.bandwidth,
-                           endpoint.delay, endpoint.cost, false);
-    }
-  }
-  for (int i = 0; i < ip_topology->node_count(); ++i) {
-    const std::vector<edge_endpoint>& adj_list = ip_topology->adj_list()->at(i);
-    for (int j = 0; j < adj_list.size(); ++j) {
-      const edge_endpoint& endpoint = adj_list[j];
-      if (i > endpoint.node_id) continue;
-      int otn_u = ip_otn_mapping->node_map[i];
-      int otn_v = ip_otn_mapping->node_map[endpoint.node_id];
-      pn_topology->AddSpecialNode(otn_u);
-      pn_topology->AddSpecialNode(otn_v);
-
-      // Update residual bandwidth on the collapsed graph. Substract the IP
-      // link's bandwidth from the residual bandwidth of the links on the mapped
-      // OTN path.
-      const path_t& mapped_otn_path =
-          ip_otn_mapping->edge_map.find(edge_t(i, endpoint.node_id))->second;
-      DEBUG("mapped path length for %d, %d = %d\n", i, endpoint.node_id,
-            mapped_otn_path.size());
-      int ip_link_cost = 0;
-      for (int k = 0; k < mapped_otn_path.size(); ++k) {
-        int u = mapped_otn_path[k].first, v = mapped_otn_path[k].second;
-        if ((u == 0 || u == 49) && (v == 0 || v == 49)) {
-          printf("BINGO\n");
-        }
-        ip_link_cost += otn_topology->GetEdgeCost(u, v);
-        long bw = pn_topology->GetEdgeResidualBandwidth(u, v);
-        pn_topology->SetEdgeResidualBandwidth(u, v, bw - endpoint.bandwidth);
-        pn_topology->SetEdgeResidualBandwidth(v, u, bw - endpoint.bandwidth);
-      }
-      // TODO: This will add both otn_u, otn_v and otn_v, otn_u to the graph.
-      // Need to handle this.
-      pn_topology->AddEdge(otn_u, otn_v, endpoint.bandwidth, endpoint.delay,
-                           ip_link_cost, true);
-    }
-  }
-  return std::move(pn_topology);
-} */
-
 int main(int argc, char* argv[]) {
   if (argc < 8) {
     printf("Not sufficient arguments. Expected 8, provided %d\n", argc);
@@ -148,17 +97,20 @@ int main(int argc, char* argv[]) {
                        end_time - start_time).count();
 
   if (success) {
-    std::cout << "Success !" << std::endl;
-  } else std::cout << "Failure !" << std::endl;
+    std::cout << "Success!" << std::endl;
+  } else std::cout << "Failure!" << std::endl;
 
   VNESolutionBuilder vne_sbuilder(mlvne_solver.get(),
                                   ip_topology.get(),
                                   otn_topology.get(),
                                   vn_topology.get());
+  
+  // Print solution time (in seconds) to file.
   FILE *sol_time_file = fopen((vn_topology_file + ".time").c_str(), "w");
-  fprintf(sol_time_file, "Solution time: %llu.%llus\n", elapsed_time / 1000000000LL,
+  fprintf(sol_time_file, "%llu.%llu\n", elapsed_time / 1000000000LL,
                        elapsed_time % 1000000000LL);
   fclose(sol_time_file);
+
   if (success) {
     vne_sbuilder.PrintVNodeMapping((vn_topology_file + ".nmap").c_str());
     vne_sbuilder.PrintVLinkMapping((vn_topology_file + ".emap").c_str());

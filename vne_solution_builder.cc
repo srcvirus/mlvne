@@ -175,20 +175,17 @@ void VNESolutionBuilder::PrintVLinkMapping(const char *filename) {
       int n = vend_point.node_id;
       if (m < n) continue;
       for (int u = 0; u < ip_topology_->node_count(); ++u) {
-        //const auto& u_neighbors = ip_topology_->adj_list()->at(u);
-        //for (const auto end_point : u_neighbors) {
-        //  int v = end_point.node_id;
-        //  int order = end_point.order;
         for (int v = 0; v < ip_topology_->node_count(); ++v) {
           if (u == v) continue;
           for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
             if (fabs(cplex.getValue(x_mn_uvi[m][n][u][v][order]) - 1) < EPS) {
               printf("Virtual link (%d, %d) --> IP link (%d, %d, %d)\n", m, n,
-                     u, v, order);
+                      u, v, order);
               if (outfile) {
-                fprintf(outfile,
-                        "Virtual link (%d, %d) --> IP link (%d, %d, %d)\n", m,
-                        n, u, v, order);
+                fprintf(outfile,"%d,%d,%d,%d,%d\n", m, n, u, v, order);
+                // fprintf(outfile,
+                //         "Virtual link (%d, %d) --> IP link (%d, %d, %d)\n", m,
+                //         n, u, v, order);
               }
             }
           }
@@ -209,7 +206,8 @@ void VNESolutionBuilder::PrintVNodeMapping(const char *filename) {
       if (fabs(cplex.getValue(y_m_u[m][u]) - 1) < EPS) {
         printf("Virtual node %d --> IP node %d\n", m, u);
         if (outfile) {
-          fprintf(outfile, "Virtual node %d --> IP node %d\n", m, u);
+          fprintf(outfile, "%d,%d\n", m, u);
+          // fprintf(outfile, "Virtual node %d --> IP node %d\n", m, u);
         }
       }
     }
@@ -222,9 +220,13 @@ void VNESolutionBuilder::PrintNewIPLinks(const char *filename) {
   if (filename) outfile = fopen(filename, "w");
   const IloCplex &cplex = vne_solver_ptr_->cplex();
   const IloIntVar5dArray &z_uvi_pq = vne_solver_ptr_->z_uvi_pq();
+  const IloIntVar3dArray &gamma_uvi = vne_solver_ptr_->gamma_uvi();
   for (int u = 0; u < ip_topology_->node_count(); ++u) {
     for (int v = 0; v < ip_topology_->node_count(); ++v) {
+      if (u == v) continue;
       for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
+        if (fabs(cplex.getValue(gamma_uvi[u][v][order]) - 0) < EPS)
+          continue;
         for (int p = 0; p < otn_topology_->node_count(); ++p) {
           const auto &p_neighbors = otn_topology_->adj_list()->at(p);
           for (const auto end_point : p_neighbors) {
@@ -232,6 +234,7 @@ void VNESolutionBuilder::PrintNewIPLinks(const char *filename) {
             if (fabs(cplex.getValue(z_uvi_pq[u][v][order][p][q]) - 1) < EPS) {
               printf("New IP link (%d, %d, %d) --> OTN link (%d, %d)\n", u, v,
                      order, p, q);
+              fprintf(outfile, "%d,%d,%d,%d,%d\n", u, v, order, p, q);
             }
           }
         }
@@ -245,7 +248,7 @@ void VNESolutionBuilder::PrintSolutionStatus(const char *filename) {
   std::cout << "Solution status = " << cplex.getStatus() << std::endl;
   if (filename) {
     std::ofstream ofs(filename);
-    ofs << cplex.getStatus();
+    ofs << cplex.getStatus() << std::endl;
     ofs.close();
   }
 }
