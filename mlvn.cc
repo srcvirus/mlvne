@@ -20,8 +20,8 @@ const std::string kUsage =
     "\t--vn_location_file=<vn_location_file>\n";
 
 int main(int argc, char* argv[]) {
-  if (argc < 8) {
-    printf("Not sufficient arguments. Expected 8, provided %d\n", argc);
+  if (argc < 7) {
+    printf("Not sufficient arguments. Expected 7, provided %d\n", argc);
     printf("%s\n", kUsage.c_str());
     return 1;
   }
