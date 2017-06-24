@@ -223,6 +223,7 @@ void VNESolutionBuilder::PrintNewIPLinks(const char *filename) {
       for (int order = 0; order < ip_topology_->GetPortCount(u); ++order) {
         if (fabs(cplex.getValue(gamma_uvi[u][v][order]) - 0) < EPS)
           continue;
+        printf("gamma_uvi[%d][%d][%d] = 1\n", u, v, order);
         for (int p = 0; p < otn_topology_->node_count(); ++p) {
           const auto &p_neighbors = otn_topology_->adj_list()->at(p);
           for (const auto end_point : p_neighbors) {
